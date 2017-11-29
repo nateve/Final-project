@@ -6,22 +6,21 @@ DELETE the lines from TEMPLATE up.
 
 TEMPLATE for your report:
 
-# Title: 
-_StopLight Simulator_
+# Title: StopLight Simulator
 
-## Team Member(s):
+## Team Member(s): 
 (Note: Don't put your email addresses here (which is public).  If a student wants their NAME hidden as well, due to optional FERPA regulations, they can be listed purely by their GitHub ID).
 
--Akhila Khanapuri
--Roshini Seshadri
--Natalie DeClerck
+* Akhila Khanapuri
+* Roshini Seshadri
+* Natalie DeClerck
 
 # Monte Carlo Simulation Scenario & Purpose:
 We plan to simulate the flow of traffic at a stoplight in a 4-way intersection. For simplicity, both roads will be 2-way single-lane streets that allow the cars to go straight or turn either direction at the stoplight.
 The purpose of the simulation would be to test the stoplight changing color at different time intervals in order to optimize the best timing for the intersection. To do this we will assume sensors are not used to check for traffic. 
 
 ### Hypothesis before running the simulation:
-
+<???>
 
 
 ### Simulation's variables of uncertainty
@@ -39,9 +38,9 @@ In reality, our random variables for time intervals between cars are really depe
 
 
 ## Instructions on how to use the program:
-
+TBD
 
 ## Sources Used:
 
 A traffic simulator in C++ for reference:
-<http://www.dreamincode.net/forums/topic/343059-traffic-light-simulation/>
+  <http://www.dreamincode.net/forums/topic/343059-traffic-light-simulation/>

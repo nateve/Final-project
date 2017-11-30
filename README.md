@@ -13,14 +13,14 @@ The purpose of the simulation would be to test the stoplight changing color at d
 ### Hypothesis before running the simulation:
 Configuration used:
 
-Intersection -> 4-way cross road
-Road -> Bi-directional traffic 
-North-South Traffic -> Uniformly distributed around a lower mean
-East/West Traffic -> Uniformly distributed around a higher mean
-Arrival time of cars at the intersection -> Uniformly distributed
-Direction that a car can go -> Left/Right/Straight - Randomly generated.
-Cycle time of a traffic signal -> 60 secs
-Sensors -> None used.
+1)  Intersection -> 4-way cross road
+2)  Road -> Bi-directional traffic 
+3)  North-South Traffic -> Uniformly distributed around a lower mean
+4)  East/West Traffic -> Uniformly distributed around a higher mean
+5)  Arrival time of cars at the intersection -> Uniformly distributed
+6)  Direction that a car can go -> Left/Right/Straight - Randomly generated.
+7)  Cycle time of a traffic signal -> 60 secs
+8)  Sensors -> None used.
 
 Hypothesis:
 

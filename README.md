@@ -51,4 +51,5 @@ The program would calculate the average waiting time for a particular car in dif
 
 1.) A traffic simulator in C++ for reference:
   <http://www.dreamincode.net/forums/topic/343059-traffic-light-simulation/>
+  
 2.) https://people.sc.fsu.edu/~jburkardt/classes/isc_2009/monte_carlo_simulation.pdf 

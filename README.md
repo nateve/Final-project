@@ -43,9 +43,12 @@ In reality, our random variables for time intervals between cars are really depe
 
 
 ## Instructions on how to use the program:
-TBD
+The inputs to the program will be the duration of the stoplight changing color, the time intervals at which the cars arrive at the intersection, the number of cars that are allowed to pass through during one green cycle and lastly, the direction that the car takes. 
+
+The program would calculate the average waiting time for a particular car in different stop time intervals and hence, deciding the optimal time for the stop signal.
 
 ## Sources Used:
 
-A traffic simulator in C++ for reference:
+1.) A traffic simulator in C++ for reference:
   <http://www.dreamincode.net/forums/topic/343059-traffic-light-simulation/>
+2.) https://people.sc.fsu.edu/~jburkardt/classes/isc_2009/monte_carlo_simulation.pdf 

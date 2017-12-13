@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def arrive(queue, direction, light):
+def arrive(queue, direction):
     """
     A function to update the queue when a car arrives and joins a queue in the particular direction.
     For the NS queue the cars arrive at a shorter time compared to the EW queue.
@@ -16,8 +16,14 @@ def arrive(queue, direction, light):
     :return:
     """
     global arrive_count
+    global NS_light, EW_light
 
     while True:
+        if direction == 'N' or direction == 'S':
+            light = NS_light
+        else:
+            light = EW_light
+
         arrive_count += 1
         Stats['car_count'] += 1
 
@@ -45,29 +51,31 @@ def depart(queue, direction, light):
     :return:
     """
     global cur_max_wait
+
     clear_delay = 3
 
     while True:
-        car_position, time_arrived = queue.get()
-        time_waiting = env.now - time_arrived
-        #print(env.now, time_arrived, time_waiting)
-        if print_sim: print("Car #{arrive_count} departed at time {time: .3f}, after waiting {time_waiting: .3f}, leaving {length} cars in the "
-                            "{direction} queue.".format(arrive_count=car_position, time=env.now, time_waiting=time_waiting, length=queue.qsize(), direction=direction))
-
-        if time_waiting > cur_max_wait:
-            cur_max_wait = time_waiting
-            Stats['max_wait_time'] = cur_max_wait
-
-        Stats['cars_waiting'] += 1
-        Stats['waiting_time'] += time_waiting
-
         if light == 'red' or queue.qsize() == 0:
             return
+        else:
+            yield env.timeout(clear_delay)
+            car_position, time_arrived = queue.get()
+            time_waiting = env.now - time_arrived
 
-        # add left on green rules here
-        # pass turn direction as parameter
+            if print_sim: print("Car #{arrive_count} departed at time {time: .3f}, after waiting {time_waiting: .3f}, leaving {length} cars in the "
+                                "{direction} queue.".format(arrive_count=car_position, time=env.now, time_waiting=time_waiting, length=queue.qsize(), direction=direction))
 
-        yield env.timeout(clear_delay)
+            if time_waiting > cur_max_wait:
+                cur_max_wait = time_waiting
+                Stats['max_wait_time'] = cur_max_wait
+
+            Stats['cars_waiting'] += 1
+            Stats['waiting_time'] += time_waiting
+
+            # add left on green rules here
+            # pass turn direction as parameter
+
+
 
 
 def light_status(direction, queue, red_time, green_time):
@@ -127,13 +135,13 @@ def run_sim(NS_green_time, total_time):
 
     env.process(light_status(direction='N', queue=N_queue, green_time=NS_green_time, red_time=NS_red_time))
     env.process(light_status(direction='S', queue=S_queue, green_time=NS_green_time, red_time=NS_red_time))
-    env.process(arrive(queue=N_queue, direction='N', light=NS_light))
-    env.process(arrive(queue=S_queue, direction='S', light=NS_light))
+    env.process(arrive(queue=N_queue, direction='N'))
+    env.process(arrive(queue=S_queue, direction='S'))
 
     env.process(light_status(direction='E', queue=E_queue, green_time=NS_green_time, red_time=NS_red_time))
     env.process(light_status(direction='W', queue=W_queue, green_time=NS_green_time, red_time=NS_red_time))
-    env.process(arrive(queue=E_queue, direction='E', light=EW_light))
-    env.process(arrive(queue=W_queue, direction='W', light=EW_light))
+    env.process(arrive(queue=E_queue, direction='E'))
+    env.process(arrive(queue=W_queue, direction='W'))
 
     env.run(until=total_time)
 
@@ -150,18 +158,24 @@ def run_sim(NS_green_time, total_time):
         for k,v in Stats.items():
             print(k,':',v)
 
-def visualize_data(greentimes,maxtimes):
+def visualize_data(x, y, yerr, metric):
     """
     A function for visualizating the plot
-    :param greentimes: An array which contains all the greentimes during the entire duration of the simulation
-    :param maxtimes: An array which contains all the max times during the entire duration of the simulation
+    :param x: An array plotted on the y-axis which contains all the greentimes during the entire duration of the simulation
+    :param y: An array plotted on the x-axis which contains an average of the max or mean times in seconds that it takes
+    for a car to get through the intersection for the entire duration of the simulation
+    :param yerr:
+    :param metric: The metric to be plotted and labeled (max or mean)
     :return:
     """
-    plt.plot(greentimes, maxtimes)
-    plt.title("Duration of green light vs maximum wait time")
-    plt.xlabel("Duration of Green Light in seconds")
-    plt.ylabel("Maximum wait time in seconds")
+    plt.style.use('ggplot')
+    plt.plot(x, y)
+    plt.errorbar(x, y, yerr=yerr)
+    plt.title("Duration of green light vs {} wait time".format(metric))
+    plt.xlabel("Duration of N/S Green Light in seconds")
+    plt.ylabel("{} wait time in seconds".format(metric))
     plt.interactive(False)
+    plt.savefig('./{}_plot.png'.format(metric))
     plt.show()
 
 if __name__ == '__main__':
@@ -172,7 +186,7 @@ if __name__ == '__main__':
     std_error_means = []
     std_error_maxs = []
     print_sim = False
-    n = 200
+    n = 100
     print('N =', n)
     for green_time in range(1,59,2):
         means = []
@@ -217,12 +231,7 @@ if __name__ == '__main__':
         std_error_maxs.append(std_error_max)
         green_times.append(green_time)
 
-    print(green_times)
-    print(sample_means)
-    print(std_error_means)
-    print(sample_maxs)
-    print(std_error_maxs)
-
     print('Process took', time.time() - start, 'seconds')
 
-    visualize_data(green_times,sample_maxs,sample_means)
+    visualize_data(x=green_times, y=sample_maxs, yerr=std_error_maxs, metric='Max')
+    visualize_data(x=green_times, y=sample_means, yerr=std_error_means, metric='Mean')

@@ -35,7 +35,7 @@ Do you think it's a good representation of reality?
 
 To simulate the stoplight scenario, we will have 4 queue data structures running North/South, East/West.
 We will have 4 continous random variables for the time intervals between when the cars arrive at each queue. These will all be drawn from a uniform probability distribution, with various ranges.
-We also want to simulate that one of the roads is busier than the other, since this is often true in reality. To do this, the North & South queue time intervals could be drawn from a uniform distribution between 2 seconds and 30 seconds, while the East and West queue intervals could range from 2 seconds to 3 minutes.
+We also want to simulate that one of the roads is busier than the other, since this is often true in reality. To do this, the North & South queue time intervals could be drawn from a uniform distribution between 1 seconds and 30 seconds, while the East and West queue intervals could range from 3 seconds to 1 minute.
 
 In addition to car arrival times, each queue will have a discrete random variable for which direction the car goes at the light from 3 choices: straight, left, or right. To start we may use random.choice() and use the default uniform probability distribution to identify which direction the car will go. However, it is probably more likely cars on the busier road will go straight than turn onto the less busy road, and we could weight the probabilities to reflect that.
 
@@ -52,4 +52,8 @@ The program would calculate the average waiting time for a particular car in dif
 1.) A traffic simulator in C++ for reference:
   <http://www.dreamincode.net/forums/topic/343059-traffic-light-simulation/>
   
-2.) https://people.sc.fsu.edu/~jburkardt/classes/isc_2009/monte_carlo_simulation.pdf 
+2.) https://people.sc.fsu.edu/~jburkardt/classes/isc_2009/monte_carlo_simulation.pdf
+
+3.) Example using SimPy: http://phillipmfeldman.org/Python/discrete_event_simulation/traffic_sim.py
+
+4.) [SimPy documentation] (https://simpy.readthedocs.io/en/latest/simpy_intro/basic_concepts.html)

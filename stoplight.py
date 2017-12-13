@@ -3,9 +3,18 @@ import random
 import time
 from queue import Queue
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def arrive(queue, direction, light):
+    """
+    A function to update the queue when a car arrives and joins a queue in the particular direction.
+    For the NS queue the cars arrive at a shorter time compared to the EW queue.
+    :param queue: Queue input takes the values N/S/E/W
+    :param direction: Direction takes the values N ,S, E, W
+    :param light: Red or green
+    :return:
+    """
     global arrive_count
 
     while True:
@@ -28,6 +37,13 @@ def arrive(queue, direction, light):
 
 
 def depart(queue, direction, light):
+    """
+    A function to keep track of the cars which depart from a particular queue and it also updates the max wait time.
+    :param queue: N_Queue, S_Queue, E_Queue, W_Queue
+    :param direction: N/S/E/W
+    :param light: Red or Green
+    :return:
+    """
     global cur_max_wait
     clear_delay = 3
 
@@ -55,6 +71,16 @@ def depart(queue, direction, light):
 
 
 def light_status(direction, queue, red_time, green_time):
+    """
+    A function to handle the change in light status from green to red or vice versa. It also
+    keeps track of the red light duration and green light duration.
+    :param direction:N/S/E/W
+    :param queue:N_Queue, S_Queue, E_Queue, W_Queue
+    :param red_time: duration of red light
+    :param green_time: duration of green light
+    :return:
+    """
+
     global NS_light, EW_light
 
     while True:
@@ -91,7 +117,12 @@ def light_status(direction, queue, red_time, green_time):
 
 
 def run_sim(NS_green_time, total_time):
-
+    """
+    A function which instantiates the process and it runs till the total_time
+    :param NS_green_time: Green light duration which is passed from the for loop.
+    :param total_time: A predefined duration in seconds. 600 seconds
+    :return:
+    """
     NS_red_time = 60 - NS_green_time
 
     env.process(light_status(direction='N', queue=N_queue, green_time=NS_green_time, red_time=NS_red_time))
@@ -119,6 +150,19 @@ def run_sim(NS_green_time, total_time):
         for k,v in Stats.items():
             print(k,':',v)
 
+def visualize_data(greentimes,maxtimes):
+    """
+    A function for visualizating the plot
+    :param greentimes: An array which contains all the greentimes during the entire duration of the simulation
+    :param maxtimes: An array which contains all the max times during the entire duration of the simulation
+    :return:
+    """
+    plt.plot(greentimes, maxtimes)
+    plt.title("Duration of green light vs maximum wait time")
+    plt.xlabel("Duration of Green Light in seconds")
+    plt.ylabel("Maximum wait time in seconds")
+    plt.interactive(False)
+    plt.show()
 
 if __name__ == '__main__':
     start = time.time()
@@ -181,3 +225,4 @@ if __name__ == '__main__':
 
     print('Process took', time.time() - start, 'seconds')
 
+    visualize_data(green_times,sample_maxs,sample_means)

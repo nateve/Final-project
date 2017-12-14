@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def arrive(queue, direction):
+def arrive(queue: Queue, direction: str):
     """
     A function to randomly generate when cars arrive from a uniform distribution, and
     update the queue when a car arrives and joins a queue in the particular direction.
@@ -33,6 +33,7 @@ def arrive(queue, direction):
         # if the light is red, or there are cars ahead of this one in the queue, add this car's position
         # and arrival time to the end of the queue
         if light == 'red' or queue.qsize() > 0:
+            # *** need to add the randomly generated turn direction as a third value in this car object tuple
             queue.put((arrive_count, env.now))
             # print statement to show the status of the car joining the queue
             if print_sim: print("Car #{arrive_count} arrived and joined the {direction} queue at position {length} " 
@@ -56,7 +57,7 @@ def arrive(queue, direction):
         yield env.timeout(next_arrival)
 
 
-def depart(queue, direction):
+def depart(queue: Queue, direction: str):
     """
     A function to keep track of the cars which depart from a particular queue.  It calculates how long
     each car took to get through the intersection, and updates the total and max wait times for the simulation.
@@ -82,6 +83,19 @@ def depart(queue, direction):
         else:
             # each departing car takes a constant value of 3 seconds to clear the intersection
             yield env.timeout(clear_delay)
+
+            # *** Add left on green rules here:
+            # get the turn direction from the car tuple object
+            # you can access the first object without removing it like `N_queue.queue[0]`
+
+            # if the car wants to turn right or go straight, pass
+            # else if the car wants to turn left, check if there are cars in queue from the opposite direction
+            # if the opposite queue is empty, pass
+            # else if the opposite queue size > 0, check if the first car is turning left
+            # if opposite car is turning left, pass
+            # else, return. This car needs to wait until the opposite queue clears
+
+            # a car departs:
             # remove the first car from the queue, and store its position and arrival time
             car_position, time_arrived = queue.get()
             # calculate the time the car took to get through the intersection after arrival
@@ -101,19 +115,16 @@ def depart(queue, direction):
             Stats['cars_waiting'] += 1
             Stats['waiting_time'] += time_waiting
 
-            # add left on green rules here
-            # pass turn direction as parameter
 
 
 
-
-def light_status(direction, queue, red_time, green_time):
+def light_status(direction: str, queue: Queue, red_time: int, green_time: int):
     """
     A function to handle the change in light status from green to red or vice versa. It also
     keeps track of the red light duration and green light duration.
     :param direction:N/S/E/W
     :param queue:N_Queue, S_Queue, E_Queue, W_Queue
-    :param red_time: duration of the red light for the NS queues
+    :param red_time: duration of the red light for the NS queues (60 seconds - green_time)
     :param green_time: duration of the green light for the NS queues
     :return:
     """
@@ -160,7 +171,7 @@ def light_status(direction, queue, red_time, green_time):
         Stats['red_time'] += red_time
 
 
-def run_sim(NS_green_time, total_time):
+def run_sim(NS_green_time: int, total_time: int):
     """
     A function which instantiates the process and it runs till the total_time. The simulation always starts
     with a green NS light and red EW light. The red light time is always one minute minus the green light time.
@@ -168,25 +179,32 @@ def run_sim(NS_green_time, total_time):
     :param total_time: A predefined duration in seconds. 600 seconds
     :return:
     """
+    # red light time is always 60 seconds - green light time
     NS_red_time = 60 - NS_green_time
 
+    # start the N and S stop lights
     env.process(light_status(direction='N', queue=N_queue, green_time=NS_green_time, red_time=NS_red_time))
     env.process(light_status(direction='S', queue=S_queue, green_time=NS_green_time, red_time=NS_red_time))
+    # start the N and S arrival process
     env.process(arrive(queue=N_queue, direction='N'))
     env.process(arrive(queue=S_queue, direction='S'))
 
+    # start the E and W stop lights
     env.process(light_status(direction='E', queue=E_queue, green_time=NS_green_time, red_time=NS_red_time))
     env.process(light_status(direction='W', queue=W_queue, green_time=NS_green_time, red_time=NS_red_time))
+    # start the E and W arrival process
     env.process(arrive(queue=E_queue, direction='E'))
     env.process(arrive(queue=W_queue, direction='W'))
 
+    # run until the total simulation time given
     env.run(until=total_time)
 
 
-def calculate_ci(sample_vals):
+def calculate_ci(sample_vals: list) -> tuple:
     """
     :param sample_vals: a list of sample statistics values (means or maxs)
-    :return: a list of 95% confidence intervals
+    :return: a tuple of the upper and lower bounds for a 95% confidence interval
+    calculated using equation: point estimate +/- 1.96 * (sample standard deviation / sqrt(sample size N))
     """
     n = len(sample_vals)
     # compute the average of all the means for this green time parameter
@@ -198,32 +216,31 @@ def calculate_ci(sample_vals):
                  sample_mean + margin_of_error)
     return intervals
 
-def visualize_data(x, y, conf_intervals, metric):
+
+def visualize_data(x: list, y: list, conf_intervals: list, metric: str):
     """
-    A function for visualizating the plot
-    :param x: An array plotted on the y-axis which contains all the green times during the entire duration of the simulation
-    :param y: An array plotted on the x-axis which contains an average of the max or mean times in seconds that it takes
+    A function for creating and saving the plot of mean or max values vs green light duration
+    :param x: A list to be plotted on the y-axis which contains all the green time parameters during the entire duration of the simulation
+    :param y: A list to be plotted on the x-axis which contains all the sample max or mean times in seconds that it took
     for a car to get through the intersection for the entire duration of the simulation
-    :param yerr: The standard error around the sample mean or max (sample standard deviation / sqrt(sample size n))
+    :param conf_intervals: A list of tuples with 95% confidence intervals around the sample statistic
     :param metric: The metric to be plotted and labeled (max or mean)
     :return:
     """
     plt.style.use('ggplot')
     plt.plot(x, y)
-    plt.errorbar(x, y, yerr=[(top-bot)/2 for top,bot in conf_intervals])
+    # plot the confidence intervals
+    plt.errorbar(x, y, yerr=[(top-bot)/2 for top, bot in conf_intervals])
+    # find and plot a red dot at the minimum y value
     min_idx = y.index(min(y))
     plt.plot(x[min_idx], y[min_idx], 'ro')
     plt.suptitle("{} Wait Time vs Duration of N/S Green Light".format(metric), fontsize=16)
     plt.title("with 95% confidence intervals", fontsize=10)
     plt.xlabel("Duration of N/S Green Light in seconds")
     plt.ylabel("{} wait time in seconds".format(metric))
-
-
     plt.interactive(False)
     plt.savefig('./{}_plot.png'.format(metric))
     plt.show()
-
-
 
 
 if __name__ == '__main__':
@@ -242,7 +259,7 @@ if __name__ == '__main__':
     print('N =', N)
     # iterate over increasing green_time parameter values between 1 and 59 seconds
     # (red light time values are always 60 seconds - green_time value)
-    for green_time in range(0, 61, 2):
+    for green_time in range(1, 60, 2):
         # instantiate mean and max collectors for each parameter value
         means = []
         maxs = []
@@ -308,7 +325,6 @@ if __name__ == '__main__':
                 print('\n')
                 for k, v in Stats.items():
                     print(k, ':', v)
-
 
             # compute and store the average time to clear the intersection for this simulation
             means.append(Stats['waiting_time'] / float(Stats['car_count']))

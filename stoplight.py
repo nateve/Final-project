@@ -5,7 +5,6 @@ from queue import Queue
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 def arrive(queue: Queue, direction: str):
     """
     A function to randomly generate when cars arrive from a uniform distribution, and
@@ -17,7 +16,9 @@ def arrive(queue: Queue, direction: str):
     """
     global arrive_count
     global NS_light, EW_light
+    # A list with three possible directions for each car- Left, Right and Straight.
     turn_list = ["L", "R","ST"]
+    # Randomly assigning a direction to the car.
     dir_go = random.SystemRandom()
     while True:
         # instantiate the light variable based on the queue direction and the current status of that light
@@ -85,32 +86,18 @@ def depart(queue: Queue, direction: str):
             # each departing car takes a constant value of 3 seconds to clear the intersection
             yield env.timeout(clear_delay)
 
-            # *** Add left on green rules here:
-
-            # get the turn direction from the car tuple object
-            # you can access the first object without removing it like `N_queue.queue[0]`
-
-            #Implementing logic for turns
+            # Logic for turns
             # Get the first car's direction. If the car is wanting to turn L then get the opposite direction's queue name.
             # Check if the opposite queue has any cars waiting. If the first car in the opposite queue wants to turn R, there
             # will be a collision hence we skip the iteration.
             d1,d2,que_turn = queue.queue[0]
             if que_turn == "L":
-                opp_queue_name,dir = opp_queue(direction)
+                #getting the opposite queue and it's direction from the opp_queue function
+                opp_queue_name,opp_dir = opp_queue(direction)
                 if opp_queue_name.qsize()>0 :
                     if(opp_queue_name.queue[0][2]=="R"):
-                        if print_sim: print("Car #{arrive_count} is waiting car in {dir} direction to clear "
-                        .format(arrive_count=d1,dir=dir))
-
+                        if print_sim: print("Car #{arrive_count} is waiting for the queue in {dir} direction to clear.".format(arrive_count=d1,dir=opp_dir))
                         return
-
-
-            # if the car wants to turn right or go straight, pass
-            # else if the car wants to turn left, check if there are cars in queue from the opposite direction
-            # if the opposite queue is empty, pass
-            # else if the opposite queue size > 0, check if the first car is turning left
-            # if opposite car is turning left, pass
-            # else, return. This car needs to wait until the opposite queue clears
 
             # a car departs:
             # remove the first car from the queue, and store its position and arrival time
@@ -135,10 +122,13 @@ def depart(queue: Queue, direction: str):
 
 
 def opp_queue(direction: str):
-
+    """
+    A function to get the opposite queue and the opposite direction for turn logic implementation.
+    :param direction: A string which takes the value N,S,E,W
+    :return:
+    """
     if direction == "N":
         return (S_queue,"S")
-
     elif direction == "S":
         return (N_queue,"N")
     elif direction == "E":
@@ -281,7 +271,7 @@ if __name__ == '__main__':
     mean_intervals = []
     max_intervals = []
     # to see print statements for each car, set this variable to True
-    print_sim = True
+    print_sim = False
     # set the sample size N for each green_time parameter
     N = 100
     print('N =', N)

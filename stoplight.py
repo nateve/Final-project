@@ -56,7 +56,7 @@ def arrive(queue, direction):
         yield env.timeout(next_arrival)
 
 
-def depart(queue, direction, light):
+def depart(queue, direction):
     """
     A function to keep track of the cars which depart from a particular queue.  It calculates how long
     each car took to get through the intersection, and updates the total and max wait times for the simulation.
@@ -66,9 +66,15 @@ def depart(queue, direction, light):
     :return:
     """
     global cur_max_wait
+    global NS_light, EW_light
     clear_delay = 3
 
     while True:
+        # instantiate the light variable based on the queue direction and the current status of that light
+        if direction == 'N' or direction == 'S':
+            light = NS_light
+        else:
+            light = EW_light
         # if the light is red, or there are no cars in the queue, do not start the departure process
         if light == 'red' or queue.qsize() == 0:
             return
@@ -121,7 +127,7 @@ def light_status(direction, queue, red_time, green_time):
 
         # if there are cars in the North or South queue, start the depart process for the queue
         if (direction == 'N' or direction == 'S') and queue.qsize() > 0:
-            env.process(depart(queue=queue, direction=direction, light=NS_light))
+            env.process(depart(queue=queue, direction=direction))
 
         # print statements to show when the NS light changes
         if direction == 'N' or direction == 'S':
@@ -140,7 +146,7 @@ def light_status(direction, queue, red_time, green_time):
 
         # if there are cars in the East or West queue, start the depart process for the queue
         if (direction == 'E' or direction == 'W') and queue.qsize() > 0:
-            env.process(depart(queue=queue, direction=direction, light=EW_light))
+            env.process(depart(queue=queue, direction=direction))
 
         # print statements to show when the EW light changes
         if direction == 'W' or direction == 'E':
@@ -176,18 +182,6 @@ def run_sim(NS_green_time, total_time):
 
     env.run(until=total_time)
 
-    if print_sim:
-        print('\n\n*** Summary ***\n\n')
-        print('Green light time:', NS_green_time)
-        print('Mean waiting time: %.3f seconds'
-          % (Stats['waiting_time'] / float(Stats['car_count'])))
-
-        print('Max waiting time: %.3f seconds'
-          % Stats['max_wait_time'])
-
-        print('\n')
-        for k,v in Stats.items():
-            print(k,':',v)
 
 def calculate_ci(sample_vals):
     """
@@ -217,10 +211,14 @@ def visualize_data(x, y, conf_intervals, metric):
     plt.style.use('ggplot')
     plt.plot(x, y)
     plt.errorbar(x, y, yerr=[(top-bot)/2 for top,bot in conf_intervals])
+    min_idx = y.index(min(y))
+    plt.plot(x[min_idx], y[min_idx], 'ro')
     plt.suptitle("{} Wait Time vs Duration of N/S Green Light".format(metric), fontsize=16)
     plt.title("with 95% confidence intervals", fontsize=10)
     plt.xlabel("Duration of N/S Green Light in seconds")
     plt.ylabel("{} wait time in seconds".format(metric))
+
+
     plt.interactive(False)
     plt.savefig('./{}_plot.png'.format(metric))
     plt.show()
@@ -230,6 +228,7 @@ def visualize_data(x, y, conf_intervals, metric):
 
 if __name__ == '__main__':
     start = time.time()
+    total_time = 600
     # instantiate collector variables to compute summary stats
     green_times = []
     sample_means = []
@@ -243,7 +242,7 @@ if __name__ == '__main__':
     print('N =', N)
     # iterate over increasing green_time parameter values between 1 and 59 seconds
     # (red light time values are always 60 seconds - green_time value)
-    for green_time in range(1, 60, 2):
+    for green_time in range(0, 61, 2):
         # instantiate mean and max collectors for each parameter value
         means = []
         maxs = []
@@ -276,7 +275,40 @@ if __name__ == '__main__':
             Stats['green_count'] = 0
 
             # run each simulation process for 10 minutes
-            run_sim(NS_green_time=green_time, total_time=600)
+            run_sim(NS_green_time=green_time, total_time=total_time)
+
+            # empty out the queues that still have cars in them
+            # and add their wait times to the Stats dictionary
+            for queue in [N_queue, S_queue, E_queue, W_queue]:
+                for car in range(queue.qsize()):
+                    car_position, time_arrived = queue.get()
+                    # calculate the time the car was waiting at the end of the simulation
+                    time_waiting = total_time - time_arrived
+
+                    # if the time the car spent in the intersection is larger
+                    # than the current max time, set this time as the new max
+                    if time_waiting > Stats['max_wait_time']:
+                        Stats['max_wait_time'] = time_waiting
+
+                    # update the values for the count of cars who waited in a queue, and the amount of time they waited
+                    Stats['cars_waiting'] += 1
+                    Stats['waiting_time'] += time_waiting
+
+            # print out summary stats for the simulation
+            if print_sim:
+                print('\n\n*** Summary ***\n\n')
+
+                print('Green light time:', green_time)
+                print('Mean waiting time: %.3f seconds'
+                      % (Stats['waiting_time'] / float(Stats['car_count'])))
+
+                print('Max waiting time: %.3f seconds'
+                      % Stats['max_wait_time'])
+
+                print('\n')
+                for k, v in Stats.items():
+                    print(k, ':', v)
+
 
             # compute and store the average time to clear the intersection for this simulation
             means.append(Stats['waiting_time'] / float(Stats['car_count']))

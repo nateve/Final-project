@@ -17,7 +17,8 @@ def arrive(queue: Queue, direction: str):
     """
     global arrive_count
     global NS_light, EW_light
-
+    turn_list = ["L", "R","ST"]
+    dir_go = random.SystemRandom()
     while True:
         # instantiate the light variable based on the queue direction and the current status of that light
         if direction == 'N' or direction == 'S':
@@ -29,22 +30,22 @@ def arrive(queue: Queue, direction: str):
         arrive_count += 1
         # add the car to the total count
         Stats['car_count'] += 1
-
+        turn = dir_go.choice(turn_list)
         # if the light is red, or there are cars ahead of this one in the queue, add this car's position
         # and arrival time to the end of the queue
         if light == 'red' or queue.qsize() > 0:
             # *** need to add the randomly generated turn direction as a third value in this car object tuple
-            queue.put((arrive_count, env.now))
+            queue.put((arrive_count, env.now,turn))
             # print statement to show the status of the car joining the queue
             if print_sim: print("Car #{arrive_count} arrived and joined the {direction} queue at position {length} " 
-                                "at time {time: .3f}.".format(arrive_count=arrive_count, direction=direction, length=queue.qsize(), time=env.now))
+                                "at time {time: .3f} to go {turn}.".format(arrive_count=arrive_count, direction=direction, length=queue.qsize(), time=env.now, turn=turn))
         # if the light is green, and there are no cars ahead of this one in the queue,
         # the car passes and is not added to the queue
         else:
             # print statement to show that a car entered the simulation and
             # passed through a green light without being added to a queue
             if print_sim: print("Car #{arrive_count} passed through a green light going {direction} with no cars waiting "
-                                "at time {time: .3f}.".format(arrive_count=arrive_count, direction=direction, time=env.now))
+                                "at time {time: .3f} to go {turn}.".format(arrive_count=arrive_count, direction=direction, time=env.now, turn=turn))
 
         # if the car is on the North or South road, delay the arrival for the next car
         # for a random time taken from a uniform distribution with a smaller range
@@ -85,8 +86,24 @@ def depart(queue: Queue, direction: str):
             yield env.timeout(clear_delay)
 
             # *** Add left on green rules here:
+
             # get the turn direction from the car tuple object
             # you can access the first object without removing it like `N_queue.queue[0]`
+
+            #Implementing logic for turns
+            # Get the first car's direction. If the car is wanting to turn L then get the opposite direction's queue name.
+            # Check if the opposite queue has any cars waiting. If the first car in the opposite queue wants to turn R, there
+            # will be a collision hence we skip the iteration.
+            d1,d2,que_turn = queue.queue[0]
+            if que_turn == "L":
+                opp_queue_name,dir = opp_queue(direction)
+                if opp_queue_name.qsize()>0 :
+                    if(opp_queue_name.queue[0][2]=="R"):
+                        if print_sim: print("Car #{arrive_count} is waiting car in {dir} direction to clear "
+                        .format(arrive_count=d1,dir=dir))
+
+                        return
+
 
             # if the car wants to turn right or go straight, pass
             # else if the car wants to turn left, check if there are cars in queue from the opposite direction
@@ -97,7 +114,8 @@ def depart(queue: Queue, direction: str):
 
             # a car departs:
             # remove the first car from the queue, and store its position and arrival time
-            car_position, time_arrived = queue.get()
+            car_position, time_arrived,turn = queue.get()
+
             # calculate the time the car took to get through the intersection after arrival
             time_waiting = env.now - time_arrived
 
@@ -116,7 +134,17 @@ def depart(queue: Queue, direction: str):
             Stats['waiting_time'] += time_waiting
 
 
+def opp_queue(direction: str):
 
+    if direction == "N":
+        return (S_queue,"S")
+
+    elif direction == "S":
+        return (N_queue,"N")
+    elif direction == "E":
+        return (W_queue,"W")
+    else:
+        return (E_queue,"E")
 
 def light_status(direction: str, queue: Queue, red_time: int, green_time: int):
     """
@@ -253,7 +281,7 @@ if __name__ == '__main__':
     mean_intervals = []
     max_intervals = []
     # to see print statements for each car, set this variable to True
-    print_sim = False
+    print_sim = True
     # set the sample size N for each green_time parameter
     N = 100
     print('N =', N)
@@ -298,7 +326,7 @@ if __name__ == '__main__':
             # and add their wait times to the Stats dictionary
             for queue in [N_queue, S_queue, E_queue, W_queue]:
                 for car in range(queue.qsize()):
-                    car_position, time_arrived = queue.get()
+                    car_position, time_arrived, turn = queue.get()
                     # calculate the time the car was waiting at the end of the simulation
                     time_waiting = total_time - time_arrived
 

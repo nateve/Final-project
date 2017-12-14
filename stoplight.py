@@ -189,7 +189,22 @@ def run_sim(NS_green_time, total_time):
         for k,v in Stats.items():
             print(k,':',v)
 
-def visualize_data(x, y, yerr, metric):
+def calculate_ci(sample_vals):
+    """
+    :param sample_vals: a list of sample statistics values (means or maxs)
+    :return: a list of 95% confidence intervals
+    """
+    n = len(sample_vals)
+    # compute the average of all the means for this green time parameter
+    sample_mean = np.mean(sample_vals)
+    # compute the 95% confidence intervals for this green time parameter
+    std_error_mean = np.std(sample_vals) / np.sqrt(n)
+    margin_of_error = 1.96 * std_error_mean
+    intervals = (sample_mean - margin_of_error,
+                 sample_mean + margin_of_error)
+    return intervals
+
+def visualize_data(x, y, conf_intervals, metric):
     """
     A function for visualizating the plot
     :param x: An array plotted on the y-axis which contains all the green times during the entire duration of the simulation
@@ -201,13 +216,16 @@ def visualize_data(x, y, yerr, metric):
     """
     plt.style.use('ggplot')
     plt.plot(x, y)
-    plt.errorbar(x, y, yerr=yerr)
-    plt.title("Duration of green light vs {} wait time".format(metric))
+    plt.errorbar(x, y, yerr=[(top-bot)/2 for top,bot in conf_intervals])
+    plt.suptitle("{} Wait Time vs Duration of N/S Green Light".format(metric), fontsize=16)
+    plt.title("with 95% confidence intervals", fontsize=10)
     plt.xlabel("Duration of N/S Green Light in seconds")
     plt.ylabel("{} wait time in seconds".format(metric))
     plt.interactive(False)
     plt.savefig('./{}_plot.png'.format(metric))
     plt.show()
+
+
 
 
 if __name__ == '__main__':
@@ -216,21 +234,21 @@ if __name__ == '__main__':
     green_times = []
     sample_means = []
     sample_maxs = []
-    std_error_means = []
-    std_error_maxs = []
+    mean_intervals = []
+    max_intervals = []
     # to see print statements for each car, set this variable to True
     print_sim = False
-    # set the sample size n for each green_time parameter
-    n = 100
-    print('N =', n)
+    # set the sample size N for each green_time parameter
+    N = 100
+    print('N =', N)
     # iterate over increasing green_time parameter values between 1 and 59 seconds
     # (red light time values are always 60 seconds - green_time value)
-    for green_time in range(1,59,2):
+    for green_time in range(1, 60, 2):
         # instantiate mean and max collectors for each parameter value
         means = []
         maxs = []
-        # run n simulations for each parameter value
-        for i in range(n):
+        # run N simulations for each parameter value
+        for i in range(N):
             # reset the environment
             env = simpy.Environment()
 
@@ -267,23 +285,24 @@ if __name__ == '__main__':
 
         # compute the average of all the means for this green time parameter
         sample_mean = np.mean(means)
-        # compute the standard error of the mean for this green time parameter
-        std_error_mean = np.std(means) / np.sqrt(n)
+        # compute the 95% confidence intervals around the mean
+        confidence_interval = calculate_ci(means)
+        mean_intervals.append(confidence_interval)
+
         # compute the average of all the max times for this green time parameter
         sample_max = np.mean(maxs)
-        # compute the standard error of the max for this green time parameter
-        std_error_max = np.std(maxs) / np.sqrt(n)
+        # compute the 95% confidence intervals around the max
+        confidence_interval = calculate_ci(maxs)
+        max_intervals.append(confidence_interval)
 
         # collect the sample means, sample maxs, and their standard error
         # to plot against each green time parameter
         sample_means.append(sample_mean)
-        std_error_means.append(std_error_mean)
         sample_maxs.append(sample_max)
-        std_error_maxs.append(std_error_max)
         green_times.append(green_time)
 
     print('Process took', time.time() - start, 'seconds')
 
     # plots of the max and mean against the green time parameters are shown and saved in the working directory
-    visualize_data(x=green_times, y=sample_maxs, yerr=std_error_maxs, metric='Max')
-    visualize_data(x=green_times, y=sample_means, yerr=std_error_means, metric='Mean')
+    visualize_data(x=green_times, y=sample_maxs, conf_intervals=max_intervals, metric='Max')
+    visualize_data(x=green_times, y=sample_means, conf_intervals=mean_intervals, metric='Mean')
